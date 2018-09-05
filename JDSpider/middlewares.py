@@ -7,7 +7,49 @@
 
 from scrapy import signals
 
+import random
+import base64
+import requests
+import json
+from scrapy.utils.project import get_project_settings
+# 主要用来动态获取user agent, user agent列表USER_AGENTS在setting.py中进行配置
+class RandomUserAgent(object):
+    """Randomly rotate user agents based on a list of predefined ones"""
 
+    def __init__(self, agents):
+        self.agents = agents
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(crawler.settings.getlist('USER_AGENTS'))
+
+    def process_request(self, request, spider):
+        request.headers.setdefault('User-Agent', random.choice(self.agents))
+# 用来切换代理，proxy列表PROXIES也是在settings.py中进行配置
+class ProxyMiddleware(object):
+    def process_request(self, request, spider):
+        r = requests.get('http://127.0.0.1:8000/?protocol=2&country=国内&score=10&count=100')
+        ip_ports = random.choice(json.loads(r.text))
+        print(ip_ports)
+        ip = ip_ports[0]
+        port = ip_ports[1]
+        ip_port=str(ip)+':'+str(port)
+        # proxies = {
+        #     'http': 'http://%s:%s' % (ip, port),
+        #     'https': 'http://%s:%s' % (ip, port)
+        # }
+        # r = requests.get('http://www.baidu.com', proxies=proxies)
+        # r.encoding = 'utf-8'
+        # settings = get_project_settings()
+        # proxy = random.choice(settings.get('PROXYS'))
+        # if proxy['user_pass'] is not None:
+        #     request.meta['proxy'] = "http://%s" % proxy['ip_port']
+        #     encoded_user_pass = base64.encodestring(proxy['user_pass'])
+        #     request.headers['Proxy-Authorization'] = 'Basic ' + encoded_user_pass
+        #     print ("**************ProxyMiddleware have pass************" + proxy['ip_port'])
+        # else:
+        #     print ("**************ProxyMiddleware no pass************" + proxy['ip_port'])
+        request.meta['proxy'] = "https://%s" % ip_port
 class JdspiderSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the spider middleware does not modify the
